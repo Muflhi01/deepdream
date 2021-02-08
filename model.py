@@ -44,13 +44,19 @@ class DeepDream():
         self.k5x5 = k[:,:,None,None]/k.sum()*np.eye(3, dtype=np.float32)
         self.is_setup = True
         
+    def get_layers(self):
+        layers = [op.name for op in self.graph.get_operations() if op.type=='Conv2D' and 'import/' in op.name]
+        feature_nums = [int(self.graph.get_tensor_by_name(name+':0').get_shape()[-1]) for name in layers]    
+        return [{'name': layer.replace('import/', '').replace('/conv', ''),
+                 'num_channels': feature_num} for layer, feature_num in zip(layers, feature_nums)]
+        
     def print_layers(self):
         layers = [op.name for op in self.graph.get_operations() if op.type=='Conv2D' and 'import/' in op.name]
         feature_nums = [int(self.graph.get_tensor_by_name(name+':0').get_shape()[-1]) for name in layers]
         print('Number of layers: %d' % len(layers))
         print('Total number of feature channels: %d' % sum(feature_nums))
         for layer, feature_num in zip(layers, feature_nums):
-            layer_name = layer.replace('/conv', '').replace('import/', '')
+            layer_name = layer.replace('import/', '').replace('/conv', '')
             print(' * %s (%d)' % (layer_name, feature_num))
                                                     
     def laplacian_normalization(self, lap_n):
@@ -122,8 +128,6 @@ class DeepDream():
         tlevels = list(map(self.normalize_std, tlevels))
         out = self.lap_merge(tlevels)
         return out[0,:,:,:]
-
-
 
 
 
